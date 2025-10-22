@@ -30,7 +30,7 @@ namespace Store.Services.Products
 
         public async Task<ProductResponse> GetProductByIdAsync(int id)
         {
-            var spec = new ProductWithBrandAndTypeSpecifications();
+            var spec = new ProductWithBrandAndTypeSpecifications(id);
 
             var product = await _unitOfWork.GetRepository<int, Product>().GetAsync(spec);
             var result = _mapper.Map<ProductResponse>(product);
