@@ -20,6 +20,19 @@ namespace Store.Persistence
                 query = query.Where(spec.Criteria); // _context.Products.Where(P => P.id == 12)
             }
 
+            if(spec.OrderBy is not null)
+            {
+                query = query.OrderBy(spec.OrderBy);
+            }else if(spec.OrderByDescending is not null)
+            {
+                query = query.OrderByDescending(spec.OrderByDescending);
+            }
+
+            if (spec.IsPagination)
+            {
+                query = query.Skip(spec.Skip).Take(spec.Take);
+            }
+
 
             // _context.Products.Where(P => P.id == 12)
             // _context.Products.Where(P => P.id == 12).Include(P => P.Brand).Include(P => P.Type)
