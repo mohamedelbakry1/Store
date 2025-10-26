@@ -54,16 +54,20 @@ namespace Store.Persistence.Repositories
 
         public async Task<IEnumerable<TEntity>> GetAllAsync(ISpecifications<Tkey, TEntity> spec, bool changeTracker = false)
         {
-            return await ApplyIncludes(spec).ToListAsync();
+            return await ApplySpecifications(spec).ToListAsync();
         }
 
         public async Task<TEntity?> GetAsync(ISpecifications<Tkey, TEntity> spec)
         {
-            return await ApplyIncludes(spec).FirstOrDefaultAsync();
+            return await ApplySpecifications(spec).FirstOrDefaultAsync();
         }
 
+        public async Task<int> CountAsync(ISpecifications<Tkey, TEntity> spec)
+        {
+            return await ApplySpecifications(spec).CountAsync();
+        }
 
-        private IQueryable<TEntity> ApplyIncludes(ISpecifications<Tkey,TEntity> spec)
+        private IQueryable<TEntity> ApplySpecifications(ISpecifications<Tkey,TEntity> spec)
         {
             return SpecificationsEvaluator.GetQuery(_context.Set<TEntity>(), spec);
         }
