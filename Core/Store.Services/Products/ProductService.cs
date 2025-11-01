@@ -2,6 +2,7 @@
 using Store.Domain.Contracts;
 using Store.Domain.Entities.Products;
 using Store.Domain.Exceptions;
+using Store.Domain.Exceptions.NotFound;
 using Store.Services.Abstractions.Products;
 using Store.Services.Specifications;
 using Store.Services.Specifications.Products;
