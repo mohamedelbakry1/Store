@@ -1,9 +1,15 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using Store.Domain.Contracts;
+using Store.Domain.Entities.Identity;
 using Store.Persistence;
+using Store.Persistence.Identity.Contexts;
 using Store.Services;
+using Store.Shared;
 using Store.Shared.ErrorModels;
 using Store.Web.Middlewares;
+using System.Text;
 
 namespace Store.Web.Extensions
 {
@@ -19,7 +25,38 @@ namespace Store.Web.Extensions
 
             services.AddApplicationServices(configuration);
 
+            services.AddIdentityServices();
+
             services.ConfigureApiBehaviorOptions();
+
+            services.Configure<JwtOptions>(configuration.GetSection("JwtOptions"));
+
+            services.AddAuthenticationService(configuration);
+
+            return services;
+        }
+
+        private static IServiceCollection AddAuthenticationService(this IServiceCollection services, IConfiguration configuration)
+        {
+            var jwtOptions = configuration.GetSection("JwtOptions").Get<JwtOptions>();
+
+            services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = "Bearer";
+                options.DefaultChallengeScheme = "Bearer";
+            }).AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters()
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = jwtOptions.Issuer,
+                    ValidateAudience = true,
+                    ValidAudience = jwtOptions.Audience,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SecurityKey))
+                };
+            });
             return services;
         }
 
@@ -55,6 +92,15 @@ namespace Store.Web.Extensions
             return services;
         }
 
+        private static IServiceCollection AddIdentityServices(this IServiceCollection services)
+        {
+            services.AddIdentityCore<AppUser>(options =>
+            {
+                options.User.RequireUniqueEmail = true;
+            }).AddRoles<IdentityRole>()
+            .AddEntityFrameworkStores<IdentityStoreDbContext>();
+            return services;
+        }
 
 
         public static async Task<WebApplication> ConfigureMiddlewares(this WebApplication app)
@@ -78,6 +124,7 @@ namespace Store.Web.Extensions
 
             app.UseHttpsRedirection();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
 
@@ -90,6 +137,7 @@ namespace Store.Web.Extensions
             var scope = app.Services.CreateScope();
             var dbIntializer = scope.ServiceProvider.GetRequiredService<IDbIntializer>(); // Ask CLR to Create Object From IDbInitializer
             await dbIntializer.IntializeAsync();
+            await dbIntializer.IntializeIdentityAsync();
             return app;
         }
 
