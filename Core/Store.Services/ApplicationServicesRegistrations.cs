@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Store.Services.Abstractions;
+using Store.Services.Mapping.Auth;
 using Store.Services.Mapping.Baskets;
 using Store.Services.Mapping.Orders;
 using Store.Services.Mapping.Products;
@@ -20,6 +21,7 @@ namespace Store.Services
             services.AddAutoMapper(M => M.AddProfile(new ProductProfile(configuration)));
             services.AddAutoMapper(M => M.AddProfile(new BasketProfile()));
             services.AddAutoMapper(M => M.AddProfile(new OrderProfile()));
+            services.AddAutoMapper(M => M.AddProfile(new AuthProfile()));
             return services;
         }
     }

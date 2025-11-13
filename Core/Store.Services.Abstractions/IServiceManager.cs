@@ -2,6 +2,7 @@
 using Store.Services.Abstractions.Basket;
 using Store.Services.Abstractions.Cache;
 using Store.Services.Abstractions.Orders;
+using Store.Services.Abstractions.Payments;
 using Store.Services.Abstractions.Products;
 using System;
 using System.Collections.Generic;
@@ -18,5 +19,6 @@ namespace Store.Services.Abstractions
         ICacheService CacheService { get; }
         IAuthService AuthService { get; }
         IOrderService OrderService { get; }
+        IPaymentService PaymentService { get; }
     }
 }

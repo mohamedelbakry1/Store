@@ -17,7 +17,6 @@ namespace Store.Presentation
     {
         [HttpGet] // GET: baseurl/api/products
         [Cache(50)]
-        [Authorize]
         public async Task<IActionResult> GetAllProducts([FromQuery] ProductQueryParameters parameters)
         {
             var result = await _serviceManager.ProductService.GetAllProductsAsync(parameters);
