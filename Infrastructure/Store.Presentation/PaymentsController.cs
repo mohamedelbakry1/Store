@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Store.Services.Abstractions;
 using Stripe;
 using System;
@@ -24,10 +25,10 @@ namespace Store.Presentation
         // stripe listen --forward-to https://localhost:7078/api/payments/webhook
         [Route("webhook")]
         [HttpPost]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(IConfiguration configuration)
         {
             var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
-            const string endpointSecret = "whsec_9b4e2074b3c23a1ae1225ab430753e18e9db2436df223726f091c46ef8472b1d";
+            var endpointSecret = configuration["StripeOptions:WebhookSecretKey"];
             try
             {
                 var stripeEvent = EventUtility.ParseEvent(json);
