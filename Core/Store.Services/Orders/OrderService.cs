@@ -21,7 +21,7 @@ namespace Store.Services.Orders
         {
             // 1. Get Order Address
 
-            var orderAddress = _mapper.Map<OrderAddress>(request.ShipAddress);
+            var orderAddress = _mapper.Map<OrderAddress>(request.ShipToAddress);
 
             // 2. Get Delivery Method By Id
 
@@ -57,9 +57,19 @@ namespace Store.Services.Orders
 
             var subTotal = orderItems.Sum(OI => OI.Price * OI.Quantity);
 
+            // 5. Payment Intent Id
+
+            // Check Order Exists
+
+            var spec = new OrderWithPaymentIntentSpecifications(basket.PaymentIntentId);
+
+            var existOrder = await _unitOfWork.GetRepository<Guid, Order>().GetAsync(spec); 
+            if(existOrder is not null)
+                _unitOfWork.GetRepository<Guid,Order>().Delete(existOrder);
+
 
             // Create Order
-            var order = new Order(userEmail, orderAddress, deliveryMethod, orderItems, subTotal);
+            var order = new Order(userEmail, orderAddress, deliveryMethod, orderItems, subTotal, basket.PaymentIntentId);
 
             // Add Order in Database
             await _unitOfWork.GetRepository<Guid, Order>().AddAsync(order);

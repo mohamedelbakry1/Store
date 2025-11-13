@@ -15,13 +15,14 @@ namespace Store.Domain.Entities.Orders
         {
             
         }
-        public Order(string userEmail, OrderAddress shippingAddress, DeliveryMethod deliveryMethod, ICollection<OrderItem> items, decimal subTotal)
+        public Order(string userEmail, OrderAddress shippingAddress, DeliveryMethod deliveryMethod, ICollection<OrderItem> items, decimal subTotal, string? paymentIntentId)
         {
             UserEmail = userEmail;
             ShippingAddress = shippingAddress;
             DeliveryMethod = deliveryMethod;
             Items = items;
             SubTotal = subTotal;
+            PaymentIntentId = paymentIntentId;
         }
 
         public string UserEmail { get; set; }
@@ -37,5 +38,7 @@ namespace Store.Domain.Entities.Orders
         //public decimal Total { get; set; } // SubTotal + Delivery Method Cost
 
         public decimal GetTotal() => SubTotal + DeliveryMethod.Price; // Not Mapped 
+
+        public string? PaymentIntentId { get; set; }
     }
 }

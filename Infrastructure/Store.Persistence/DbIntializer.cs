@@ -125,7 +125,7 @@ namespace Store.Persistence
                 var superAdmin = new AppUser()
                 {
                     UserName = "SuperAdmin",
-                    DispalyName = "SuperAdmin",
+                    DisplayName = "SuperAdmin",
                     Email = "SuperAdmin@gmail.com",
                     PhoneNumber = "01552013062"
                 };
@@ -133,7 +133,7 @@ namespace Store.Persistence
                 var admin = new AppUser()
                 {
                     UserName = "Admin",
-                    DispalyName = "Admin",
+                    DisplayName = "Admin",
                     Email = "Admin@gmail.com",
                     PhoneNumber = "01015594223"
                 };

@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -19,8 +21,60 @@ using System.Threading.Tasks;
 
 namespace Store.Services.Auth
 {
-    public class AuthService(UserManager<AppUser> _userManager, IOptions<JwtOptions> options) : IAuthService
+    public class AuthService(UserManager<AppUser> _userManager, IOptions<JwtOptions> options, IMapper _mapper) : IAuthService
     {
+        public async Task<bool> CheckEmailExistAsync(string email)
+        {
+            return await _userManager.FindByEmailAsync(email) != null;
+        }
+
+        public async Task<UserResponse?> GetCurrentUserAsync(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if(user is null) throw new UserNotFoundException(email);
+
+            return new UserResponse()
+            {
+                DisplayName = user.DisplayName,
+                Email = user.Email,
+                Token = await GenerateTokenAsync(user),
+            };
+        }
+
+        public async Task<AddressDto?> GetCurrentUserAddressAsync(string email)
+        {
+            //_userManager.FindByEmailAsync(email); // This Function Don`t Load the Navigational Property
+            var user = await _userManager.Users.Include(U => U.Address).FirstOrDefaultAsync(U => U.Email.ToLower() == email.ToLower());
+            if (user is null) throw new UserNotFoundException(email);
+
+            return _mapper.Map<AddressDto>(user.Address);
+        }
+
+        public async Task<AddressDto?> UpdateCurrentUserAddressAsync(AddressDto request, string email)
+        {
+            var user = await _userManager.Users.Include(U => U.Address).FirstOrDefaultAsync(U => U.Email.ToLower() == email.ToLower());
+            if (user is null) throw new UserNotFoundException(email);
+
+            if(user.Address is null)
+            {
+                // Create New Address
+                user.Address = _mapper.Map<Address>(request);
+            }
+            else
+            {
+                // Update the Old Address
+                user.Address.FirstName = request.FirstName;
+                user.Address.LastName = request.LastName;
+                user.Address.City = request.City;
+                user.Address.Street = request.Street;
+                user.Address.Country = request.Country;
+            }
+
+            await _userManager.UpdateAsync(user);
+
+            return _mapper.Map<AddressDto>(user.Address);
+        }
+
         public async Task<UserResponse?> LoginAsync(LoginRequest request)
         {
             var user = await _userManager.FindByEmailAsync(request.Email);
@@ -32,7 +86,7 @@ namespace Store.Services.Auth
 
             return new UserResponse()
             {
-                DisplayName = user.DispalyName,
+                DisplayName = user.DisplayName,
                 Email = user.Email,
                 Token = await GenerateTokenAsync(user)
             };
@@ -42,7 +96,7 @@ namespace Store.Services.Auth
         {
             var user = new AppUser()
             {
-                DispalyName = request.DisplayName,
+                DisplayName = request.DisplayName,
                 Email = request.Email,
                 UserName = request.UserName,
                 PhoneNumber = request.PhoneNumber
@@ -53,7 +107,7 @@ namespace Store.Services.Auth
 
             return new UserResponse()
             {
-                DisplayName = user.DispalyName,
+                DisplayName = user.DisplayName,
                 Email = user.Email,
                 Token = await GenerateTokenAsync(user)
             };
@@ -68,7 +122,7 @@ namespace Store.Services.Auth
 
             var authClaims = new List<Claim>()
             {
-                new Claim(ClaimTypes.GivenName, user.DispalyName),
+                new Claim(ClaimTypes.GivenName, user.DisplayName),
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.MobilePhone, user.PhoneNumber)
             };
