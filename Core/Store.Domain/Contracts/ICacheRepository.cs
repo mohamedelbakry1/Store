@@ -8,7 +8,7 @@ namespace Store.Domain.Contracts
 {
     public interface ICacheRepository
     {
-        Task<string?> GetAsync(string key);
-        Task SetAsync(string key, object value, TimeSpan duration);
+        Task<string?> GetAsync(string key, CancellationToken ct =default);
+        Task SetAsync(string key, string value, TimeSpan? timeToLive = default, CancellationToken ct = default);
     }
 }

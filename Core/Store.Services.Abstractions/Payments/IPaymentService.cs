@@ -1,4 +1,6 @@
-﻿using Store.Shared.Dtos.Basket;
+﻿
+using Store.Shared.Common;
+using Store.Shared.DTOS.Baskets;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +11,8 @@ namespace Store.Services.Abstractions.Payments
 {
     public interface IPaymentService
     {
-        Task<BasketDto?> CreatePaymentIntentAsync(string basketId);
+        Task<Result<CustomerBasketDTO>> CreateOrUpdatePaymentIntentAsync(string basketId, CancellationToken ct = default);
+        Task PaymentSucceeded(string paymentIntentId);
+        Task PaymentFailed(string paymentIntentId);
     }
 }

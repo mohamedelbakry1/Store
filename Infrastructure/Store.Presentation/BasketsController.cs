@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Store.Services.Abstractions;
-using Store.Shared.Dtos.Basket;
+using Store.Services.Abstractions.Basket;
+using Store.Shared.DTOS.Baskets;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,29 +11,33 @@ using System.Threading.Tasks;
 
 namespace Store.Presentation
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class BasketsController(IServiceManager _serviceManager) : ControllerBase
+    public class BasketsController(IBasketService _basketService) : ApiBaseController
     {
-        [HttpGet] // GET: baseUrl/api/baskets?id
-        public async Task<IActionResult> GetBasketById(string id)
+        [HttpGet("{id}")]
+        [ProducesResponseType(typeof(CustomerBasketDTO), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<CustomerBasketDTO>> GetBasket(string id, CancellationToken ct)
         {
-            var result = await _serviceManager.BasketService.GetBasketAsync(id);
-            return Ok(result);
+            var result = await _basketService.GetBasketAsync(id, ct);
+            return ToActionResult(result);
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateOrUpdateBasket(BasketDto dto)
+        [ProducesResponseType(typeof(CustomerBasketDTO), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<CustomerBasketDTO>> CreateOrUpdateBasket(CustomerBasketDTO basketDTO, CancellationToken ct)
         {
-            var result = await _serviceManager.BasketService.CreateBasketAsync(dto, TimeSpan.FromDays(1));
-            return Ok(result);
+            var result = await _basketService.CreateOrUpdateBasketAsync(basketDTO, ct: ct);
+            return ToActionResult(result);
         }
 
-        [HttpDelete] 
-        public async Task<IActionResult> DeleteBasketById(string id)
+        [HttpDelete("{id}")]
+        [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<bool>> DeleteBasket(string id, CancellationToken ct)
         {
-            var result = await _serviceManager.BasketService.DeleteBasketAsync(id);
-            return NoContent(); // 204
+            var result = await _basketService.DeleteBasketAsync(id, ct);
+            return ToActionResult(result);
         }
     }
 }

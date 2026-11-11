@@ -1,21 +1,12 @@
 ﻿namespace Store.Domain.Entities.Orders
 {
-    // Table
     public class OrderItem : BaseEntity<int>
     {
-        public OrderItem()
-        {
-            
-        }
-        public OrderItem(ProductInOrderItem product, decimal price, int quantity)
-        {
-            Product = product;
-            Price = price;
-            Quantity = quantity;
-        }
-
-        public ProductInOrderItem Product { get; set; }
+        public ProductInOrderItem Product { get; set; } = default!;
         public decimal Price { get; set; }
         public int Quantity { get; set; }
+
+        public Order Order { get; set; } = default!;
+        public Guid OrderId { get; set; }
     }
 }

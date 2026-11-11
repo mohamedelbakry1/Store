@@ -13,7 +13,11 @@ namespace Store.Persistence.Data.Configurations
     {
         public void Configure(EntityTypeBuilder<ProductBrand> builder)
         {
-            builder.Property(P => P.Name).HasColumnType("varchar").HasMaxLength(256);
+            builder.Property(p => p.Name).HasColumnType("nvarchar").HasMaxLength(100);
+
+            builder.HasMany(b => b.Products)
+                   .WithOne(p => p.Brand)
+                   .HasForeignKey(p => p.BrandId);
         }
     }
 }

@@ -8,11 +8,11 @@ namespace Store.Domain.Entities.Baskets
 {
     public class CustomerBasket
     {
-        public string Id { get; set; }
-        public IEnumerable<BasketItem> Items { get; set; }
-        public int? DeliveryMethodId { get; set; }
-        public string? PaymentIntentId { get; set; }
+        public string Id { get; set; } = default!;
+        public ICollection<BasketItem> BasketItems { get; set; } = [];
         public string? ClientSecret { get; set; }
-        public decimal? ShippingCost { get; set; }
+        public string? PaymentIntentId { get; set; }
+        public int? DeliveryMethodId { get; set; }
+        public decimal? ShippingPrice { get; set; }
     }
 }

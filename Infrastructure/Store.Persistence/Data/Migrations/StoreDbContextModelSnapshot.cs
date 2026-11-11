@@ -17,7 +17,7 @@ namespace Store.Persistence.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.10")
+                .HasAnnotation("ProductVersion", "9.0.22")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -30,23 +30,24 @@ namespace Store.Persistence.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal>("Cost")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("decimal");
+
                     b.Property<string>("DeliveryTime")
                         .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("varchar");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar");
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("varchar");
-
-                    b.Property<decimal>("Price")
-                        .HasColumnType("decimal(18,2)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar");
 
                     b.Property<string>("ShortName")
                         .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("varchar");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar");
 
                     b.HasKey("Id");
 
@@ -59,6 +60,10 @@ namespace Store.Persistence.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("BuyerEmail")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("DeliveryMethodId")
                         .HasColumnType("int");
 
@@ -68,15 +73,14 @@ namespace Store.Persistence.Data.Migrations
                     b.Property<string>("PaymentIntentId")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<decimal>("SubTotal")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("UserEmail")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasPrecision(8, 2)
+                        .HasColumnType("decimal");
 
                     b.HasKey("Id");
 
@@ -93,11 +97,12 @@ namespace Store.Persistence.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<Guid?>("OrderId")
+                    b.Property<Guid>("OrderId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("Price")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(8, 2)
+                        .HasColumnType("decimal");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
@@ -122,21 +127,22 @@ namespace Store.Persistence.Data.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("varchar");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("varchar");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar");
 
                     b.Property<string>("PictureUrl")
                         .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("varchar");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar");
 
                     b.Property<decimal>("Price")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal");
 
                     b.Property<int>("TypeId")
                         .HasColumnType("int");
@@ -160,8 +166,8 @@ namespace Store.Persistence.Data.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("varchar");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar");
 
                     b.HasKey("Id");
 
@@ -178,8 +184,8 @@ namespace Store.Persistence.Data.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("varchar");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar");
 
                     b.HasKey("Id");
 
@@ -189,7 +195,7 @@ namespace Store.Persistence.Data.Migrations
             modelBuilder.Entity("Store.Domain.Entities.Orders.Order", b =>
                 {
                     b.HasOne("Store.Domain.Entities.Orders.DeliveryMethod", "DeliveryMethod")
-                        .WithMany()
+                        .WithMany("Orders")
                         .HasForeignKey("DeliveryMethodId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -201,23 +207,28 @@ namespace Store.Persistence.Data.Migrations
 
                             b1.Property<string>("City")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasMaxLength(50)
+                                .HasColumnType("nvarchar");
 
                             b1.Property<string>("Country")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasMaxLength(50)
+                                .HasColumnType("nvarchar");
 
                             b1.Property<string>("FirstName")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasMaxLength(50)
+                                .HasColumnType("nvarchar");
 
                             b1.Property<string>("LastName")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasMaxLength(50)
+                                .HasColumnType("nvarchar");
 
                             b1.Property<string>("Street")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasMaxLength(50)
+                                .HasColumnType("nvarchar");
 
                             b1.HasKey("OrderId");
 
@@ -235,10 +246,11 @@ namespace Store.Persistence.Data.Migrations
 
             modelBuilder.Entity("Store.Domain.Entities.Orders.OrderItem", b =>
                 {
-                    b.HasOne("Store.Domain.Entities.Orders.Order", null)
-                        .WithMany("Items")
+                    b.HasOne("Store.Domain.Entities.Orders.Order", "Order")
+                        .WithMany("OrderItems")
                         .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.OwnsOne("Store.Domain.Entities.Orders.ProductInOrderItem", "Product", b1 =>
                         {
@@ -247,14 +259,16 @@ namespace Store.Persistence.Data.Migrations
 
                             b1.Property<string>("PictureUrl")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasMaxLength(200)
+                                .HasColumnType("nvarchar");
 
                             b1.Property<int>("ProductId")
                                 .HasColumnType("int");
 
                             b1.Property<string>("ProductName")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasMaxLength(100)
+                                .HasColumnType("nvarchar");
 
                             b1.HasKey("OrderItemId");
 
@@ -264,6 +278,8 @@ namespace Store.Persistence.Data.Migrations
                                 .HasForeignKey("OrderItemId");
                         });
 
+                    b.Navigation("Order");
+
                     b.Navigation("Product")
                         .IsRequired();
                 });
@@ -271,15 +287,15 @@ namespace Store.Persistence.Data.Migrations
             modelBuilder.Entity("Store.Domain.Entities.Products.Product", b =>
                 {
                     b.HasOne("Store.Domain.Entities.Products.ProductBrand", "Brand")
-                        .WithMany()
+                        .WithMany("Products")
                         .HasForeignKey("BrandId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Store.Domain.Entities.Products.ProductType", "Type")
-                        .WithMany()
+                        .WithMany("Products")
                         .HasForeignKey("TypeId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Brand");
@@ -287,9 +303,24 @@ namespace Store.Persistence.Data.Migrations
                     b.Navigation("Type");
                 });
 
+            modelBuilder.Entity("Store.Domain.Entities.Orders.DeliveryMethod", b =>
+                {
+                    b.Navigation("Orders");
+                });
+
             modelBuilder.Entity("Store.Domain.Entities.Orders.Order", b =>
                 {
-                    b.Navigation("Items");
+                    b.Navigation("OrderItems");
+                });
+
+            modelBuilder.Entity("Store.Domain.Entities.Products.ProductBrand", b =>
+                {
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("Store.Domain.Entities.Products.ProductType", b =>
+                {
+                    b.Navigation("Products");
                 });
 #pragma warning restore 612, 618
         }

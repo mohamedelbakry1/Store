@@ -1,4 +1,5 @@
-﻿using Store.Shared.Dtos.Basket;
+﻿using Store.Shared.Common;
+using Store.Shared.DTOS.Baskets;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,9 +10,9 @@ namespace Store.Services.Abstractions.Basket
 {
     public interface IBasketService
     {
-        Task<BasketDto?> GetBasketAsync(string id);
-        Task<BasketDto?> CreateBasketAsync(BasketDto dto, TimeSpan dustation);
-        Task<bool> DeleteBasketAsync(string id);
+        Task<Result<CustomerBasketDTO>> GetBasketAsync(string basketId, CancellationToken ct = default);
+        Task<Result<CustomerBasketDTO>> CreateOrUpdateBasketAsync(CustomerBasketDTO basketDTO, TimeSpan? timeToLive = default, CancellationToken ct = default);
+        Task<Result<bool>> DeleteBasketAsync(string basketId, CancellationToken ct = default);
 
     }
 }

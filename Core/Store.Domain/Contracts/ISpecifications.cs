@@ -8,15 +8,15 @@ using System.Threading.Tasks;
 
 namespace Store.Domain.Contracts
 {
-    public interface ISpecifications<TKey,TEntity> where TEntity : BaseEntity<TKey>
+    public interface ISpecifications<TEntity,TKey> where TEntity : BaseEntity<TKey>
     {
-        List<Expression<Func<TEntity,object>>> Includes { get; set; }
-        Expression<Func<TEntity,bool>> Criteria { get; set; }
-        Expression<Func<TEntity,object>> OrderBy { get; set; }
-        Expression<Func<TEntity,object>> OrderByDescending { get; set; }
-        int Skip { get; set; }
-        int Take { get; set; }
-        bool IsPagination { get; set; }
+        ICollection<Expression<Func<TEntity,object>>> IncludeExpressions { get; }
+        Expression<Func<TEntity,bool>> Criteria { get; }
+        Expression<Func<TEntity,object>>? OrderBy { get; }
+        Expression<Func<TEntity,object>>? OrderByDescending { get; }
+        int Skip { get; }
+        int Take { get; }
+        bool isPaginated { get; }
 
     }
 }

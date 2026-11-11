@@ -13,16 +13,17 @@ namespace Store.Persistence.Data.Configurations
     {
         public void Configure(EntityTypeBuilder<Order> builder)
         {
-            builder.OwnsOne(O => O.ShippingAddress);
-            builder.HasOne(O => O.DeliveryMethod)
-                   .WithMany()
-                   .HasForeignKey(O => O.DeliveryMethodId);
+            builder.Property(o => o.SubTotal).HasColumnType("decimal").HasPrecision(8, 2);
+            builder.Property(o => o.Status).HasConversion<string>().HasMaxLength(50);
 
-            builder.HasMany(O => O.Items)
-                   .WithOne()
-                   .OnDelete(DeleteBehavior.Cascade);
-
-            builder.Property(O => O.SubTotal).HasColumnType("decimal(18,2)");
+            builder.OwnsOne(o => o.ShippingAddress, address =>
+            {
+                address.Property(s => s.Street).HasColumnType("nvarchar").HasMaxLength(50);
+                address.Property(s => s.City).HasColumnType("nvarchar").HasMaxLength(50);
+                address.Property(s => s.FirstName).HasColumnType("nvarchar").HasMaxLength(50);
+                address.Property(s => s.LastName).HasColumnType("nvarchar").HasMaxLength(50);
+                address.Property(s => s.Country).HasColumnType("nvarchar").HasMaxLength(50);
+            });
         }
     }
 }

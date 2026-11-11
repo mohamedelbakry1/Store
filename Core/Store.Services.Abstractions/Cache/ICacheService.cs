@@ -8,7 +8,7 @@ namespace Store.Services.Abstractions.Cache
 {
     public interface ICacheService
     {
-        Task SetAsync(string key, object value, TimeSpan duration);
-        Task<string?> GetAsync(string key);
+        Task<string?> GetDataAsync(string key, CancellationToken ct = default);
+        Task SetDataAsync(string key, object value, TimeSpan? timeToLive = default, CancellationToken ct = default);
     }
 }

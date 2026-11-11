@@ -13,20 +13,10 @@ namespace Store.Persistence.Data.Configurations
     {
         public void Configure(EntityTypeBuilder<Product> builder)
         {
-            builder.Property(P => P.Name).HasColumnType("varchar").HasMaxLength(256);
-            builder.Property(P => P.Description).HasColumnType("varchar").HasMaxLength(512);
-            builder.Property(P => P.PictureUrl).HasColumnType("varchar").HasMaxLength(256);
-            builder.Property(P => P.Price).HasColumnType("decimal(18,2)");
-
-            builder.HasOne(P => P.Brand)
-                   .WithMany()
-                   .HasForeignKey(P => P.BrandId)
-                   .OnDelete(DeleteBehavior.NoAction);
-
-            builder.HasOne(P => P.Type)
-                   .WithMany()
-                   .HasForeignKey(P => P.TypeId)
-                   .OnDelete(DeleteBehavior.NoAction);
+            builder.Property(p => p.Name).HasColumnType("nvarchar").HasMaxLength(100);
+            builder.Property(p => p.Description).HasColumnType("nvarchar").HasMaxLength(500);
+            builder.Property(p => p.PictureUrl).HasColumnType("nvarchar").HasMaxLength(200);
+            builder.Property(p => p.Price).HasColumnType("decimal").HasPrecision(18, 2);
 
         }
     }

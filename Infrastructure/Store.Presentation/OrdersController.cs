@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Store.Services.Abstractions;
-using Store.Shared.Dtos.Orders;
+using Store.Services.Abstractions.Orders;
+using Store.Shared.DTOS.Orders;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,43 +13,42 @@ using System.Threading.Tasks;
 
 namespace Store.Presentation
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class OrdersController(IServiceManager _serviceManager) : ControllerBase
+    public class OrderController(IOrderService orderService) : ApiBaseController
     {
-        // Create Order
         [HttpPost]
         [Authorize]
-        public async Task<IActionResult> CreateOrder(OrderRequest request)
+        [ProducesResponseType(typeof(OrderReturnDTO), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<OrderReturnDTO>> CreateOrder(OrderDTO orderDTO, CancellationToken ct)
         {
-            var userEmailClaim = User.FindFirst(ClaimTypes.Email);
-            var result = await _serviceManager.OrderService.CreateOrderAsync(request, userEmailClaim.Value);
-            return Ok(result);
-        }
-
-        [HttpGet("deliverymethods")]
-        public async Task<IActionResult> GetAllDeliveryMethod()
-        {
-            var result = await _serviceManager.OrderService.GetAllDeliveryMethodAsync();
-            return Ok(result);
+            return ToActionResult(await orderService.CreateOrderAsync(orderDTO, GetEmailFromToken(), ct));
         }
 
         [HttpGet]
         [Authorize]
-        public async Task<IActionResult> GetOrderForSpecificUser()
+        [ProducesResponseType(typeof(IReadOnlyList<OrderReturnDTO>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<IReadOnlyList<OrderReturnDTO>>> GetAllOrders(CancellationToken ct)
         {
-            var userEmailClaim = User.FindFirst(ClaimTypes.Email);
-            var result = await _serviceManager.OrderService.GetOrderForSpecificUserAsync(userEmailClaim.Value);
-            return Ok(result);
+            return ToActionResult(await orderService.GetAllOrdersForUserAsync(GetEmailFromToken(), ct));
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{id:guid}")]
         [Authorize]
-        public async Task<IActionResult> GetOrderByIdForSpecificUser(Guid id)
+        [ProducesResponseType(typeof(OrderReturnDTO), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<OrderReturnDTO>> GetOrderByIdAndEmail(Guid id, CancellationToken ct)
         {
-            var userEmailClaim = User.FindFirst(ClaimTypes.Email);
-            var result = await _serviceManager.OrderService.GetOrderByIdForSpecificUserAsync(id,userEmailClaim.Value);
-            return Ok(result);
+            return ToActionResult(await orderService.GetOrderByIdAndEmailAsync(id, GetEmailFromToken(), ct));
+        }
+
+        [HttpGet("deliveryMethods")]
+        [ProducesResponseType(typeof(IReadOnlyList<DeliveryMethodsDTO>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<IReadOnlyList<DeliveryMethodsDTO>>> GetAllDeliveryMethods(CancellationToken ct)
+        {
+            return ToActionResult(await orderService.GetAllDeliveryMethods(ct));
         }
     }
 }

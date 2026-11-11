@@ -1,62 +1,53 @@
-﻿using Store.Domain.Exceptions.BadRequest;
+﻿using Microsoft.AspNetCore.Mvc;
+using Store.Domain.Exceptions.BadRequest;
 using Store.Domain.Exceptions.NotFound;
 using Store.Domain.Exceptions.UnAuthorized;
 using Store.Shared.ErrorModels;
 
 namespace Store.Web.Middlewares
 {
-    public class GlobalErrorHandlingMiddlewares
+    public class GlobalErrorHandlingMiddlewares(RequestDelegate _next, ILogger<GlobalErrorHandlingMiddlewares> _logger)
     {
-        private readonly RequestDelegate _next;
-
-        public GlobalErrorHandlingMiddlewares(RequestDelegate next)
-        {
-            _next = next;
-        }
-
-        public async Task InvokeAsync(HttpContext context)
+        public async Task InvokeAsync(HttpContext httpContext)
         {
             try
             {
-                await _next.Invoke(context);
-                if(context.Response.StatusCode == StatusCodes.Status404NotFound) // routing middleware
+                await _next.Invoke(httpContext);
+                if (httpContext.Response.StatusCode == StatusCodes.Status404NotFound && !httpContext.Response.HasStarted)
                 {
-                    context.Response.ContentType = "application/json";
-                    var response = new ErrorDetails()
+                    httpContext.Response.ContentType = "application/json";
+                    var problem = new ProblemDetails()
                     {
-                        StatusCode = context.Response.StatusCode,
-                        ErrorMessage = $"End Point {context.Request.Path} was Not Found !!"
+                        Title = "EndPoint.NotFound",
+                        Detail = $"EndPoint with path {httpContext.Request.Path} is not found",
+                        Status = StatusCodes.Status404NotFound,
+                        Instance = httpContext.Request.Path,
+                        Extensions = { ["traceId"] = httpContext.TraceIdentifier }
                     };
-
-                    await context.Response.WriteAsJsonAsync(response);
+                    await httpContext.Response.WriteAsJsonAsync(problem);
                 }
             }
             catch (Exception ex)
             {
-                // logic
+                _logger.LogError(ex, "Something went wrong");
 
-                // 1. Set Status Code of Response
-                context.Response.StatusCode = ex switch
+                if (httpContext.Response.HasStarted)
                 {
-                    NotFoundException => StatusCodes.Status404NotFound,
-                    BadRequestException => StatusCodes.Status400BadRequest,
-                    UnAuthorizedException => StatusCodes.Status401Unauthorized,
-                    _ => StatusCodes.Status500InternalServerError
-                };
+                    _logger.LogWarning("The response has already started, the error handler will not be executed.");
+                    throw;
+                }
 
-                // 2. Set Content Type of Response
-                context.Response.ContentType = "application/json";
-
-                // 3. Set Body of Response
-
-                var response = new ErrorDetails()
+                var problem = new ProblemDetails()
                 {
-                    StatusCode = context.Response.StatusCode,
-                    ErrorMessage = ex.Message
+                    Title = "Internal Server Error",
+                    Detail = "An unexpected error occurred",
+                    Status = StatusCodes.Status500InternalServerError,
+                    Instance = httpContext.Request.Path,
+                    Extensions = { ["traceId"] = httpContext.TraceIdentifier }
                 };
-
-                // return Response
-                await context.Response.WriteAsJsonAsync(response);
+                httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                httpContext.Response.ContentType = "application/json";
+                await httpContext.Response.WriteAsJsonAsync(problem);
             }
         }
     }

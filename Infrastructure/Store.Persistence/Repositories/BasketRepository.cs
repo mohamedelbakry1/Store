@@ -10,33 +10,29 @@ using System.Threading.Tasks;
 
 namespace Store.Persistence.Repositories
 {
-    public class BasketRepository(IConnectionMultiplexer connection) : IBasketRepository
+    public class BasketRepository : IBasketRepository
     {
-        private readonly IDatabase _database = connection.GetDatabase();
-
-
-        public async Task<CustomerBasket?> GetBasketAsync(string id)
+        private readonly IDatabase _database;
+        public BasketRepository(IConnectionMultiplexer connection)
         {
-            var redisValue = await _database.StringGetAsync(id);
-            if (redisValue.IsNullOrEmpty) return null;
-
-            var basket = JsonSerializer.Deserialize<CustomerBasket>(redisValue);
-            if(basket is null) return null;
-
-            return basket;
+            _database = connection.GetDatabase();
         }
-
-        public async Task<CustomerBasket?> CreateBasketAsync(CustomerBasket basket, TimeSpan duration)
+        public async Task<CustomerBasket?> CreateOrUpdateBasketAsync(CustomerBasket basket, TimeSpan? timeToLive = default, CancellationToken ct = default)
         {
             var redisValue = JsonSerializer.Serialize(basket);
-            var flag = await _database.StringSetAsync(basket.Id, redisValue, duration);
-            if (!flag) return null;
-            return await GetBasketAsync(basket.Id);
+            var result = await _database.StringSetAsync(basket.Id, redisValue, timeToLive ?? TimeSpan.FromDays(7));
+            return result ? basket : null;
         }
 
-        public async Task<bool> DeleteBasketAsync(string id)
+        public async Task<bool> DeleteBasketAsync(string basketId, CancellationToken ct = default)
         {
-            return await _database.KeyDeleteAsync(id);   
+            return await _database.KeyDeleteAsync(basketId);
+        }
+
+        public async Task<CustomerBasket?> GetBasketAsync(string basketId, CancellationToken ct = default)
+        {
+            var basket = await _database.StringGetAsync(basketId);
+            return basket.IsNullOrEmpty ? null : JsonSerializer.Deserialize<CustomerBasket>(basket.ToString());
         }
     }
 }

@@ -1,10 +1,9 @@
 ﻿using AutoMapper;
 using Store.Domain.Contracts;
 using Store.Domain.Entities.Baskets;
-using Store.Domain.Exceptions.BadRequest;
-using Store.Domain.Exceptions.NotFound;
 using Store.Services.Abstractions.Basket;
-using Store.Shared.Dtos.Basket;
+using Store.Shared.Common;
+using Store.Shared.DTOS.Baskets;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,30 +12,29 @@ using System.Threading.Tasks;
 
 namespace Store.Services.Baskets
 {
-    public class BasketService(IBasketRepository _basketRepository, IMapper _mapper) : IBasketService
+    internal class BasketService(IBasketRepository _basketRepository, IMapper _mapper) : IBasketService
     {
-        public async Task<BasketDto?> GetBasketAsync(string id)
+        public async Task<Result<CustomerBasketDTO>> CreateOrUpdateBasketAsync(CustomerBasketDTO basketDTO, TimeSpan? timeToLive = default, CancellationToken ct = default)
         {
-            var basket = await _basketRepository.GetBasketAsync(id);
-            if (basket is null) throw new BasketNotFoundException(id);
-
-            var result = _mapper.Map<BasketDto>(basket);
-            return result;
+            var basket = _mapper.Map<CustomerBasket>(basketDTO);
+            var result = await _basketRepository.CreateOrUpdateBasketAsync(basket, timeToLive, ct);
+            if (result == null)
+                return Error.Failure("CreateOrUpdateBasket.Failure", "Failed to create or update the basket.");
+            return _mapper.Map<CustomerBasketDTO>(result);
         }
 
-        public async Task<BasketDto?> CreateBasketAsync(BasketDto dto, TimeSpan duration)
+        public async Task<Result<bool>> DeleteBasketAsync(string basketId, CancellationToken ct = default)
         {
-            var basket = _mapper.Map<CustomerBasket>(dto);
-            var result = await _basketRepository.CreateBasketAsync(basket, duration);
-            if(result is null) throw new CreateOrUpdateBasketBadRequestException();
-            return _mapper.Map<BasketDto>(result);
+            var result = await _basketRepository.DeleteBasketAsync(basketId, ct);
+            return result ? result : Error.Failure("DeleteBasket.Failure", "Failed to delete the basket.");
         }
 
-        public async Task<bool> DeleteBasketAsync(string id)
+        public async Task<Result<CustomerBasketDTO>> GetBasketAsync(string basketId, CancellationToken ct = default)
         {
-            var flag = await _basketRepository.DeleteBasketAsync(id);
-            if(!flag) throw new DeleteBasketBadRequestException();
-            return flag;
+            var basket = await _basketRepository.GetBasketAsync(basketId, ct);
+            if (basket == null)
+                return Error.NotFound("Basket.NotFound", $"Basket with id {basketId} is not found");
+            return _mapper.Map<CustomerBasketDTO>(basket);
         }
     }
 }
