@@ -1,4 +1,5 @@
-﻿using Store.Shared.Dtos.Orders;
+﻿using Store.Shared.Common;
+using Store.Shared.DTOS.Orders;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,9 +10,9 @@ namespace Store.Services.Abstractions.Orders
 {
     public interface IOrderService
     {
-        Task<OrderResponse?> CreateOrderAsync(OrderRequest request, string userEmail);
-        Task<IEnumerable<DeliveryMethodResponse>> GetAllDeliveryMethodAsync();
-        Task<OrderResponse?> GetOrderByIdForSpecificUserAsync(Guid id, string UserEmail);
-        Task<IEnumerable<OrderResponse>> GetOrderForSpecificUserAsync(string UserEmail);
+        Task<Result<OrderReturnDTO>> CreateOrderAsync(OrderDTO orderDTO, string email, CancellationToken ct = default);
+        Task<Result<IReadOnlyList<OrderReturnDTO>>> GetAllOrdersForUserAsync(string email, CancellationToken ct = default);
+        Task<Result<OrderReturnDTO>> GetOrderByIdAndEmailAsync(Guid id, string email, CancellationToken ct = default);
+        Task<Result<IReadOnlyList<DeliveryMethodsDTO>>> GetAllDeliveryMethods(CancellationToken ct = default);
     }
 }

@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using Store.Domain.Entities.Baskets;
-using Store.Shared.Dtos.Basket;
+using Store.Shared.DTOS.Baskets;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,12 +9,12 @@ using System.Threading.Tasks;
 
 namespace Store.Services.Mapping.Baskets
 {
-    public class BasketProfile : Profile
+    internal class BasketProfile : Profile
     {
         public BasketProfile()
         {
-            CreateMap<CustomerBasket, BasketDto>().ReverseMap();
-            CreateMap<BasketItem, BasketItemDto>().ReverseMap();
+            CreateMap<CustomerBasket, CustomerBasketDTO>().ReverseMap();
+            CreateMap<BasketItem, BasketItemDTO>().ReverseMap();
         }
     }
 }

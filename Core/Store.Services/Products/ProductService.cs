@@ -7,7 +7,8 @@ using Store.Services.Abstractions.Products;
 using Store.Services.Specifications;
 using Store.Services.Specifications.Products;
 using Store.Shared;
-using Store.Shared.Dtos.Products;
+using Store.Shared.Common;
+using Store.Shared.DTOS.Products;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,51 +17,40 @@ using System.Threading.Tasks;
 
 namespace Store.Services.Products
 {
-    public class ProductService(IUnitOfWork _unitOfWork, IMapper _mapper) : IProductService
+    internal class ProductService(IUnitOfWork unitOfWork, IMapper mapper) : IProductService
     {
-        public async Task<PaginationResponse<ProductResponse>> GetAllProductsAsync(ProductQueryParameters parameters)
+        public async Task<Result<IReadOnlyList<BrandDTO>>> GetAllBrandsAsync(CancellationToken ct = default)
         {
-            //var spec = new BaseSpecifications<int, Product>(null);
-            //spec.Includes.Add(P => P.Brand);
-            //spec.Includes.Add(P => P.Type);
 
-            var spec = new ProductWithBrandAndTypeSpecifications(parameters);
-
-            var products = await _unitOfWork.GetRepository<int,Product>().GetAllAsync(spec);
-            var result = _mapper.Map<IEnumerable<ProductResponse>>(products);
-
-            var specCount = new ProductCountSpecifications(parameters);
-
-            var count = await _unitOfWork.GetRepository<int, Product>().CountAsync(specCount);
-
-            return new PaginationResponse<ProductResponse>(parameters.PageIndex,parameters.PageSize,count,result);
+            var brands = await unitOfWork.GetRepository<ProductBrand, int>().GetAllAsync(false, ct);
+            return Result<IReadOnlyList<BrandDTO>>.Ok(mapper.Map<IReadOnlyList<BrandDTO>>(brands));
         }
 
-        public async Task<ProductResponse> GetProductByIdAsync(int id)
+        public async Task<Result<PaginatedResult<ProductDTO>>> GetAllProductsAsync(ProductQueryParams queryParams, CancellationToken ct = default)
         {
-            var spec = new ProductWithBrandAndTypeSpecifications(id);
+            var spec = new ProductsWithTypeAndBrandSpec(queryParams);
+            var products = await unitOfWork.GetRepository<Product, int>().GetAllAsync(spec, false, ct);
+            var data = mapper.Map<IReadOnlyList<ProductDTO>>(products);
 
-            var product = await _unitOfWork.GetRepository<int, Product>().GetAsync(spec);
+            var countSpec = new ProductsCountSpec(queryParams);
+            var countOfAllProducts = await unitOfWork.GetRepository<Product, int>().CountAsync(countSpec, ct);
 
-            if (product is null) throw new ProductNotFoundException(id);
-
-            var result = _mapper.Map<ProductResponse>(product);
-            return result;
-        }
-        public async Task<IEnumerable<BrandTypeResponse>> GetAllBrandsAsync()
-        {
-            var brands = await _unitOfWork.GetRepository<int, ProductBrand>().GetAllAsync();
-            var result = _mapper.Map<IEnumerable<BrandTypeResponse>>(brands);
-            return result;
+            return Result<PaginatedResult<ProductDTO>>.Ok(new PaginatedResult<ProductDTO>(queryParams.PageSize, queryParams.PageIndex, countOfAllProducts, data));
         }
 
-        public async Task<IEnumerable<BrandTypeResponse>> GetAllTypesAsync()
+        public async Task<Result<IReadOnlyList<TypeDTO>>> GetAllTypesAsync(CancellationToken ct = default)
         {
-            var types = await _unitOfWork.GetRepository<int, ProductType>().GetAllAsync();
-            var result = _mapper.Map<IEnumerable<BrandTypeResponse>>(types);
-            return result;
+            var types = await unitOfWork.GetRepository<ProductType, int>().GetAllAsync(false, ct);
+            return Result<IReadOnlyList<TypeDTO>>.Ok(mapper.Map<IReadOnlyList<TypeDTO>>(types));
         }
 
-
+        public async Task<Result<ProductDTO?>> GetProductByIdAsync(int id, CancellationToken ct = default)
+        {
+            var spec = new ProductsWithTypeAndBrandSpec(id);
+            var product = await unitOfWork.GetRepository<Product, int>().GetByIdAsync(spec, ct);
+            if (product is null)
+                return Error.NotFound("Product.NotFound", $"Product with id {id} not found");
+            return mapper.Map<ProductDTO>(product);
+        }
     }
 }

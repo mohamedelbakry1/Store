@@ -13,8 +13,18 @@ namespace Store.Persistence.Data.Configurations
     {
         public void Configure(EntityTypeBuilder<OrderItem> builder)
         {
-            builder.OwnsOne(O => O.Product);
-            builder.Property(O => O.Price).HasColumnType("decimal(18,2)");
+            builder.Property(oi => oi.Price).HasColumnType("decimal").HasPrecision(8, 2);
+
+            builder.OwnsOne(oi => oi.Product, p =>
+            {
+                p.Property(p => p.ProductName).HasColumnType("nvarchar").HasMaxLength(100);
+                p.Property(p => p.PictureUrl).HasColumnType("nvarchar").HasMaxLength(200);
+            });
+
+            builder.HasOne(oi => oi.Order)
+                   .WithMany(o => o.OrderItems)
+                   .HasForeignKey(oi => oi.OrderId)
+                   .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

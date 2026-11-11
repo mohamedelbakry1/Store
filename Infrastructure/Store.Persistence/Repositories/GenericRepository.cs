@@ -3,6 +3,7 @@ using Store.Domain.Contracts;
 using Store.Domain.Entities;
 using Store.Domain.Entities.Products;
 using Store.Persistence.Data.Contexts;
+using Store.Persistence.Specifications;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,65 +12,41 @@ using System.Threading.Tasks;
 
 namespace Store.Persistence.Repositories
 {
-    public class GenericRepository<Tkey, TEntity>(StoreDbContext _context) : IGenericRepository<Tkey, TEntity> where TEntity : BaseEntity<Tkey>
+    public class GenericRepository<TEntity, TKey>(StoreDbContext dbContext) : IGenericRepository<TEntity, TKey> where TEntity : BaseEntity<TKey>
     {
 
-        public async Task<IEnumerable<TEntity>> GetAllAsync(bool changeTracker = false)
-        {
-            if(typeof(TEntity) == typeof(Product))
-            {
-                return changeTracker ?
-                        await _context.Products.Include(P => P.Brand).Include(P => P.Type).ToListAsync() as IEnumerable<TEntity> :
-                        await _context.Products.Include(P => P.Brand).Include(P => P.Type).AsNoTracking().ToListAsync() as IEnumerable<TEntity>;
-            }
-            return changeTracker ?
-                    await _context.Set<TEntity>().ToListAsync() :
-                    await _context.Set<TEntity>().AsNoTracking().ToListAsync();
+        public void Add(TEntity entity) => dbContext.Set<TEntity>().Add(entity);
 
+        public async Task<int> CountAsync(ISpecifications<TEntity, TKey> spec, CancellationToken ct = default)
+        {
+            return await SpecificationEvaluator.CreateQuery<TEntity, TKey>(dbContext.Set<TEntity>(), spec).AsNoTracking().CountAsync(ct);
         }
 
-        public async Task<TEntity?> GetAsync(Tkey key)
+        public async Task<IReadOnlyList<TEntity>> GetAllAsync(bool changeTracker = false, CancellationToken ct = default)
         {
-            if(typeof(TEntity) == typeof(Product))
-            {
-                return await _context.Products.Include(P => P.Brand).Include(P => P.Type).FirstOrDefaultAsync(P => P.Id == key as int?) as TEntity;
-            }
-            return await _context.Set<TEntity>().FindAsync(key);
+            return changeTracker ? await dbContext.Set<TEntity>().ToListAsync() 
+                : await dbContext.Set<TEntity>().AsNoTracking().ToListAsync();
         }
 
-        public async Task AddAsync(TEntity entity)
+        public async Task<IReadOnlyList<TEntity>> GetAllAsync(ISpecifications<TEntity, TKey> spec, bool changeTracker = false, CancellationToken ct = default)
         {
-             await _context.Set<TEntity>().AddAsync(entity);
+            return changeTracker ? await SpecificationEvaluator.CreateQuery(dbContext.Set<TEntity>(), spec).ToListAsync() 
+                : await SpecificationEvaluator.CreateQuery(dbContext.Set<TEntity>(), spec).AsNoTracking().ToListAsync();
         }
 
-        public void Update(TEntity entity)
+        public async Task<TEntity?> GetByIdAsync(TKey id, CancellationToken ct = default)
         {
-            _context.Set<TEntity>().Update(entity);
+            return await dbContext.Set<TEntity>().FindAsync(id, ct);
         }
 
-        public void Delete(TEntity entity)
+        public async Task<TEntity?> GetByIdAsync(ISpecifications<TEntity, TKey> spec, CancellationToken ct = default)
         {
-            _context.Set<TEntity>().Remove(entity);
+            var query = SpecificationEvaluator.CreateQuery<TEntity, TKey>(dbContext.Set<TEntity>(), spec);
+            return await query.AsNoTracking().FirstOrDefaultAsync(ct);
         }
 
-        public async Task<IEnumerable<TEntity>> GetAllAsync(ISpecifications<Tkey, TEntity> spec, bool changeTracker = false)
-        {
-            return await ApplySpecifications(spec).ToListAsync();
-        }
+        public void Remove(TEntity entity) => dbContext.Set<TEntity>().Remove(entity);
 
-        public async Task<TEntity?> GetAsync(ISpecifications<Tkey, TEntity> spec)
-        {
-            return await ApplySpecifications(spec).FirstOrDefaultAsync();
-        }
-
-        public async Task<int> CountAsync(ISpecifications<Tkey, TEntity> spec)
-        {
-            return await ApplySpecifications(spec).CountAsync();
-        }
-
-        private IQueryable<TEntity> ApplySpecifications(ISpecifications<Tkey,TEntity> spec)
-        {
-            return SpecificationsEvaluator.GetQuery(_context.Set<TEntity>(), spec);
-        }
+        public void Update(TEntity entity) => dbContext.Set<TEntity>().Update(entity);
     }
 }

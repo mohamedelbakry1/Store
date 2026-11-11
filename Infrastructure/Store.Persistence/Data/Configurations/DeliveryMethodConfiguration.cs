@@ -13,11 +13,15 @@ namespace Store.Persistence.Data.Configurations
     {
         public void Configure(EntityTypeBuilder<DeliveryMethod> builder)
         {
-            builder.Property(O => O.ShortName).HasColumnType("varchar").HasMaxLength(128);
-            builder.Property(O => O.Description).HasColumnType("varchar").HasMaxLength(256);
-            builder.Property(O => O.DeliveryTime).HasColumnType("varchar").HasMaxLength(128);
-            builder.Property(O => O.Price).HasColumnType("decimal(18,2)");
-            
+            builder.Property(d => d.Cost).HasColumnType("decimal").HasPrecision(8, 2);
+            builder.Property(d => d.ShortName).HasColumnType("nvarchar").HasMaxLength(50);
+            builder.Property(d => d.Description).HasColumnType("nvarchar").HasMaxLength(100);
+            builder.Property(d => d.DeliveryTime).HasColumnType("nvarchar").HasMaxLength(50);
+
+            builder.HasMany(d => d.Orders)
+                   .WithOne(o => o.DeliveryMethod)
+                   .HasForeignKey(o => o.DeliveryMethodId);
+
         }
     }
 }

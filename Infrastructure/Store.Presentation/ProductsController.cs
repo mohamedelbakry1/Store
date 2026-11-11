@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Store.Presentation.Attributes;
-using Store.Services.Abstractions;
-using Store.Shared.Dtos.Products;
+using Store.Services.Abstractions.Products;
+using Store.Shared.Common;
+using Store.Shared.DTOS.Products;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,43 +13,41 @@ using System.Threading.Tasks;
 
 namespace Store.Presentation
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class ProductsController(IServiceManager _serviceManager) : ControllerBase
+    [Authorize]
+    public class ProductsController(IProductService productService) : ApiBaseController
     {
-        [HttpGet] // GET: baseurl/api/products
-        [Cache(50)]
-        public async Task<IActionResult> GetAllProducts([FromQuery] ProductQueryParameters parameters)
+        [HttpGet]
+        [RedisCache]
+        [ProducesResponseType(typeof(PaginatedResult<ProductDTO>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<PaginatedResult<ProductDTO>>> GetAllProducts([FromQuery] ProductQueryParams queryParams, CancellationToken ct)
         {
-            var result = await _serviceManager.ProductService.GetAllProductsAsync(parameters);
-            if (result is null) return BadRequest(); // 400
-            return Ok(result); // 200
+            var result = await productService.GetAllProductsAsync(queryParams, ct);
+            return ToActionResult(result);
         }
 
-        [HttpGet("{id}")] // GET: baseurl/api/products/id
-        public async Task<IActionResult> GetProductById(int? id)
+        [HttpGet("{id}")]
+        [ProducesResponseType(typeof(ProductDTO), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<ProductDTO?>> GetProductById(int id, CancellationToken ct)
         {
-            if (id is null) return BadRequest();
-
-            var result = await _serviceManager.ProductService.GetProductByIdAsync(id.Value);
-            //if (result is null) return NotFound(); // 400
-            return Ok(result); // 200
+            var result = await productService.GetProductByIdAsync(id, ct);
+            return ToActionResult(result);
         }
 
-        [HttpGet("brands")] // GET: baseurl/api/products/brands
-        public async Task<IActionResult> GetAllBrands()
+        [HttpGet("types")]
+        [ProducesResponseType(typeof(TypeDTO), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IReadOnlyList<TypeDTO>>> GetAllTypes(CancellationToken ct)
         {
-            var result = await _serviceManager.ProductService.GetAllBrandsAsync();
-            if (result is null) return BadRequest(); // 400
-            return Ok(result); // 200
+            var result = await productService.GetAllTypesAsync(ct);
+            return ToActionResult(result);
         }
 
-        [HttpGet("types")] // GET: baseurl/api/products/types
-        public async Task<IActionResult> GetAllTypes()
+        [HttpGet("brands")]
+        [ProducesResponseType(typeof(BrandDTO), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IReadOnlyList<BrandDTO>>> GetAllBrands(CancellationToken ct)
         {
-            var result = await _serviceManager.ProductService.GetAllTypesAsync();
-            if (result is null) return BadRequest(); // 400
-            return Ok(result); // 200
+            var result = await productService.GetAllBrandsAsync(ct);
+            return ToActionResult(result);
         }
     }
 }

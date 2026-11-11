@@ -9,18 +9,22 @@ using System.Threading.Tasks;
 
 namespace Store.Persistence.Repositories
 {
-    public class CacheRepository(IConnectionMultiplexer connection) : ICacheRepository
+    public class CacheRepository : ICacheRepository
     {
-        private readonly IDatabase _database = connection.GetDatabase();
-        public async Task<string?> GetAsync(string key)
+        private readonly IDatabase _database;
+        public CacheRepository(IConnectionMultiplexer connection)
         {
-            var redisValue = await _database.StringGetAsync(key);
-            return redisValue;
+            _database = connection.GetDatabase();
+        }
+        public async Task<string?> GetAsync(string key, CancellationToken ct = default)
+        {
+            var value = await _database.StringGetAsync(key);
+            return value.HasValue ? value.ToString() : null;
         }
 
-        public async Task SetAsync(string key, object value, TimeSpan duration)
+        public async Task SetAsync(string key, string value, TimeSpan? timeToLive = null, CancellationToken ct = default)
         {
-            await _database.StringSetAsync(key, JsonSerializer.Serialize(value), duration);
+            await _database.StringSetAsync(key, value, timeToLive ?? TimeSpan.FromDays(2));
         }
     }
 }

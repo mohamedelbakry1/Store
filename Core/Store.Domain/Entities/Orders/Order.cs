@@ -8,36 +8,32 @@ using System.Threading.Tasks;
 
 namespace Store.Domain.Entities.Orders
 {
-    // Table
     public class Order : BaseEntity<Guid>
     {
-        public Order()
+        private Order()
         {
             
         }
         public Order(string userEmail, OrderAddress shippingAddress, DeliveryMethod deliveryMethod, ICollection<OrderItem> items, decimal subTotal, string? paymentIntentId)
         {
-            UserEmail = userEmail;
+            BuyerEmail = userEmail;
             ShippingAddress = shippingAddress;
             DeliveryMethod = deliveryMethod;
-            Items = items;
+            OrderItems = items;
             SubTotal = subTotal;
             PaymentIntentId = paymentIntentId;
         }
 
-        public string UserEmail { get; set; }
+        public string BuyerEmail { get; set; } = default!;
         public DateTimeOffset OrderDate { get; set; } = DateTimeOffset.Now;
         public OrderStatus Status { get; set; } = OrderStatus.Pending;
-        public OrderAddress ShippingAddress { get; set; }
-        public DeliveryMethod DeliveryMethod { get; set; } // Navigational Property
-        public int DeliveryMethodId { get; set; } // FK
-        public ICollection<OrderItem> Items { get; set; } // Navigational Property
-        public decimal SubTotal { get; set; } // Price * Quantity
+        public OrderAddress ShippingAddress { get; set; } = default!;
+        public DeliveryMethod DeliveryMethod { get; set; } = default!;
+        public int DeliveryMethodId { get; set; }
+        public ICollection<OrderItem> OrderItems { get; set; } = [];
+        public decimal SubTotal { get; set; }
 
-        //[NotMapped]
-        //public decimal Total { get; set; } // SubTotal + Delivery Method Cost
-
-        public decimal GetTotal() => SubTotal + DeliveryMethod.Price; // Not Mapped 
+        public decimal GetTotal() => SubTotal + DeliveryMethod.Cost;
 
         public string? PaymentIntentId { get; set; }
     }

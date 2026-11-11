@@ -7,15 +7,15 @@ using System.Threading.Tasks;
 
 namespace Store.Domain.Contracts
 {
-    public interface IGenericRepository<TKey,TEntity> where TEntity : BaseEntity<TKey>
+    public interface IGenericRepository<TEntity,TKey> where TEntity : BaseEntity<TKey>
     {
-        Task<IEnumerable<TEntity>> GetAllAsync(bool changeTracker = false);
-        Task<IEnumerable<TEntity>> GetAllAsync(ISpecifications<TKey,TEntity> spec,bool changeTracker = false);
-        Task<TEntity?> GetAsync(TKey key);
-        Task<TEntity?> GetAsync(ISpecifications<TKey,TEntity> spec);
-        Task<int> CountAsync(ISpecifications<TKey,TEntity> spec);
-        Task AddAsync(TEntity entity);
+        Task<IReadOnlyList<TEntity>> GetAllAsync(bool changeTracker = false, CancellationToken ct = default);
+        Task<IReadOnlyList<TEntity>> GetAllAsync(ISpecifications<TEntity,TKey> spec,bool changeTracker = false, CancellationToken ct = default);
+        Task<TEntity?> GetByIdAsync(TKey key, CancellationToken ct = default);
+        Task<TEntity?> GetByIdAsync(ISpecifications<TEntity,TKey> spec, CancellationToken ct = default);
+        Task<int> CountAsync(ISpecifications<TEntity,TKey> spec, CancellationToken ct = default);
+        void Add(TEntity entity);
         void Update(TEntity entity);
-        void Delete(TEntity entity);
+        void Remove(TEntity entity);
     }
 }

@@ -1,88 +1,104 @@
 ﻿using AutoMapper;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Store.Domain.Contracts;
 using Store.Domain.Entities.Orders;
 using Store.Domain.Entities.Products;
-using Store.Domain.Exceptions.NotFound;
 using Store.Services.Abstractions.Payments;
-using Store.Shared.Dtos.Basket;
-using Stripe;
+using Store.Services.Specifications.Orders;
+using Store.Services.Specifications.Products;
+using Store.Shared.Common;
+using Store.Shared.DTOS.Baskets;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Product = Store.Domain.Entities.Products.Product;
 
 namespace Store.Services.Payments
 {
-    public class PaymentService(IBasketRepository _basketRepository, IUnitOfWork _unitOfWork, IConfiguration configuration, IMapper _mapper) : IPaymentService
+    internal class PaymentService : IPaymentService
     {
-        public async Task<BasketDto?> CreatePaymentIntentAsync(string basketId)
+        private readonly IBasketRepository _basketRepository;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IPaymentGateway _paymentGateway;
+        private readonly IOptions<PaymentGatewaySettings> _options;
+        private readonly IMapper _mapper;
+
+        public PaymentService(
+        IBasketRepository basketRepository,
+        IUnitOfWork unitOfWork,
+        IPaymentGateway paymentGateway,
+        IOptions<PaymentGatewaySettings> options,
+        IMapper mapper
+        )
         {
-            // Calculate Amount = SubTotal + Delivery Method Cost
+            _basketRepository = basketRepository;
+            _unitOfWork = unitOfWork;
+            _paymentGateway = paymentGateway;
+            _options = options;
+            _mapper = mapper;
+        }
+        public async Task<Result<CustomerBasketDTO>> CreateOrUpdatePaymentIntentAsync(string basketId, CancellationToken ct = default)
+        {
+            var basket = await _basketRepository.GetBasketAsync(basketId, ct);
+            if (basket == null)
+                return Error.NotFound("Basket.NotFound", $"Basket with id {basketId} is not found");
+            if (basket.BasketItems.Count == 0)
+                return Error.Validation("Basket.Empty", $"Can`t Create Order with empty basket!!");
 
-            // Get Basket by Id
-            var basket = await _basketRepository.GetBasketAsync(basketId);
-            if(basket is null) throw new BasketNotFoundException(basketId);
 
-            // Check Product and its Price
-            foreach(var item in basket.Items)
+            if (basket.DeliveryMethodId == null)
+                return Error.Validation("DeliveryMethod.Validation", "Delivery Method is Required");
+            var deliveryMethod = await _unitOfWork.GetRepository<DeliveryMethod, int>().GetByIdAsync(basket.DeliveryMethodId.Value, ct);
+            if (deliveryMethod == null)
+                return Error.NotFound("DeliveryMethod.NotFound", $"Delivery Method with id {basket.DeliveryMethodId} is not found");
+            basket.ShippingPrice = deliveryMethod.Cost;
+
+            var productsIds = basket.BasketItems.Select(i => i.Id).ToHashSet();
+            var products = (await _unitOfWork.GetRepository<Product, int>().GetAllAsync(new ProductWithIdSpec(productsIds), false, ct)).ToDictionary(p => p.Id);
+
+            foreach (var item in basket.BasketItems)
             {
-                var product = await _unitOfWork.GetRepository<int, Product>().GetAsync(item.Id);
-                if(product is null) throw new ProductNotFoundException(item.Id);
+                if (!products.TryGetValue(item.Id, out var product))
+                    return Error.NotFound("Product.NotFound", $"Product with id {item.Id} is not found");
                 item.Price = product.Price;
             }
 
-            // Calculate SubTotal
-            var subTotal = basket.Items.Sum(I => I.Price * I.Quantity);
+            var subTotal = basket.BasketItems.Sum(i => i.Price * i.Quantity);
+            var totalAmount = (subTotal + deliveryMethod.Cost) * 100m;
 
-            // Get Delivery Method by Id
-
-            if (!basket.DeliveryMethodId.HasValue) throw new DeliveryMethodNotFoundException(-1);
-
-            var deliveryMethod = await _unitOfWork.GetRepository<int, DeliveryMethod>().GetAsync(basket.DeliveryMethodId.Value);
-            if(deliveryMethod is null) throw new DeliveryMethodNotFoundException(basket.DeliveryMethodId.Value);
-
-            basket.ShippingCost = deliveryMethod.Price;
-
-            var amount = subTotal + deliveryMethod.Price;
-
-            // Send Amount to Stripe
-            StripeConfiguration.ApiKey = configuration["StripeOptions:SecretKey"];
-
-            PaymentIntentService paymentIntentService = new PaymentIntentService();
-
-            PaymentIntent paymentIntent;
-
-            if(basket.PaymentIntentId is null)
+            if (string.IsNullOrEmpty(basket.PaymentIntentId))
             {
-                // Create
-                var options = new PaymentIntentCreateOptions()
-                {
-                    Amount = (long)amount * 100,
-                    Currency = "usd",
-                    PaymentMethodTypes = new List<string>() { "card"}
-                };
-
-                paymentIntent =  await paymentIntentService.CreateAsync(options);
+                var result = await _paymentGateway.CreatePaymentIntentAsync(totalAmount, _options.Value.DefaultCurrency, ct);
+                basket.PaymentIntentId = result.PaymentIntentId;
+                basket.ClientSecret = result.ClientSecret;
             }
             else
             {
-                // Update
-                var options = new PaymentIntentUpdateOptions()
-                {
-                    Amount = (long)amount * 100,
-                };
-
-                paymentIntent = await paymentIntentService.UpdateAsync(basket.PaymentIntentId,options);
+                var result = await _paymentGateway.UpdatePaymentIntentAsync(totalAmount, basket.PaymentIntentId, ct);
             }
 
-            basket.PaymentIntentId = paymentIntent.Id;
-            basket.ClientSecret = paymentIntent.ClientSecret;
+            await _basketRepository.CreateOrUpdateBasketAsync(basket, ct: ct);
 
-            basket = await _basketRepository.CreateBasketAsync(basket, TimeSpan.FromDays(1));
-            return _mapper.Map<BasketDto>(basket);
+            return _mapper.Map<CustomerBasketDTO>(basket);
+        }
+
+        public async Task PaymentFailed(string paymentIntentId)
+        {
+            var order = await _unitOfWork.GetRepository<Order, Guid>().GetByIdAsync(new PaymentIntentSpec(paymentIntentId));
+            if (order == null)
+                return;
+            order.Status = OrderStatus.PaymentFailed;
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task PaymentSucceeded(string paymentIntentId)
+        {
+            var order = await _unitOfWork.GetRepository<Order, Guid>().GetByIdAsync(new PaymentIntentSpec(paymentIntentId));
+            if (order == null)
+                return;
+            order.Status = OrderStatus.PaymentSuccess;
+            await _unitOfWork.SaveChangesAsync();
         }
     }
 }

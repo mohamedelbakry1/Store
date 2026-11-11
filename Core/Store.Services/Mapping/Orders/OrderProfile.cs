@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Store.Domain.Entities.Orders;
-using Store.Shared.Dtos.Orders;
+using Store.Shared.DTOS.Identity;
+using Store.Shared.DTOS.Orders;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,18 +14,15 @@ namespace Store.Services.Mapping.Orders
     {
         public OrderProfile()
         {
-            CreateMap<OrderAddress, OrderAddressDto>().ReverseMap();
+            CreateMap<AddressDTO, OrderAddress>().ReverseMap();
+            CreateMap<OrderItem, OrderItemDTO>().ForMember(x => x.ProductId, src => src.MapFrom(x => x.Product.ProductId))
+                                                .ForMember(x => x.ProductName, src => src.MapFrom(x => x.Product.ProductName))
+                                                .ForMember(x => x.PictureUrl, src => src.MapFrom<OrderPictureUrlResolver>());
 
-            CreateMap<Order, OrderResponse>()
-                .ForMember(D => D.DeliveryMethod, O => O.MapFrom(S => S.DeliveryMethod.ShortName))
-                .ForMember(O => O.Total, O => O.MapFrom(S => S.GetTotal()));
+            CreateMap<Order, OrderReturnDTO>().ForMember(x => x.DeliveryMethod, src => src.MapFrom(x => x.DeliveryMethod.ShortName))
+                                              .ForMember(x => x.DeliveryMethodCost, src => src.MapFrom(x => x.DeliveryMethod.Cost));
 
-            CreateMap<OrderItem, OrderItemDto>()
-                .ForMember(D => D.ProductId, O => O.MapFrom(S => S.Product.ProductId))
-                .ForMember(D => D.ProductName, O => O.MapFrom(S => S.Product.ProductName))
-                .ForMember(D => D.PictureUrl, O => O.MapFrom(S => S.Product.PictureUrl));
-
-            CreateMap<DeliveryMethod, DeliveryMethodResponse>();
+            CreateMap<DeliveryMethod, DeliveryMethodsDTO>();
         }
     }
 }
